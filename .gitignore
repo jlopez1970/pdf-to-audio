@@ -1,0 +1,10 @@
+# Entorno virtual
+.venv/
+# Python
+__pycache__/
+*.pyc
+# Salidas generadas (audiolibros y textos)
+*_audiobook/
+*.mp3
+# macOS
+.DS_Store
