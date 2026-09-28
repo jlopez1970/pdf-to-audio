@@ -2,7 +2,7 @@
 
 Convierte el texto de cualquier PDF en un audiolibro MP3 con voces neuronales de sonido natural (en español, inglés y muchos otros idiomas).
 
-**Versión actual:** 1.0.0 — ver [CHANGELOG.md](CHANGELOG.md)
+**Versión actual:** 1.2.0 — ver [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -45,7 +45,7 @@ Usa el atajo `audiobook.sh`, que activa el entorno virtual automáticamente:
 ./audiobook.sh mi_libro.pdf
 ```
 
-Esto crea la carpeta `mi_libro_audiobook/` con un MP3 por cada 25 páginas.
+Esto crea la carpeta `mi_libro_audiobook/` con un MP3 por cada 25 páginas. El script detecta el idioma del libro y elige la voz, y omite automáticamente las páginas de índice.
 
 ### Ejemplos
 
@@ -58,6 +58,7 @@ Esto crea la carpeta `mi_libro_audiobook/` con un MP3 por cada 25 páginas.
 | Además, un solo MP3 completo | `./audiobook.sh libro.pdf --merge` |
 | Partes de 10 páginas | `./audiobook.sh libro.pdf --pages-per-part 10` |
 | Guardar el texto limpio para revisarlo | `./audiobook.sh libro.pdf --save-text` |
+| Incluir las páginas de índice | `./audiobook.sh libro.pdf --keep-index` |
 | Elegir carpeta de salida | `./audiobook.sh libro.pdf -o ~/Music/Audiolibros` |
 | Ver voces en español | `./audiobook.sh --list-voices es` |
 | Ver la versión | `./audiobook.sh --version` |
@@ -66,21 +67,24 @@ Esto crea la carpeta `mi_libro_audiobook/` con un MP3 por cada 25 páginas.
 
 | Opción | Descripción | Predeterminado |
 |---|---|---|
-| `-v`, `--voice` | Voz a usar | `en-US-AndrewNeural` |
+| `-v`, `--voice` | Voz a usar | Automática según el idioma del libro |
 | `-r`, `--rate` | Velocidad (`-10%`, `+20%`) | `+0%` |
 | `--start` / `--end` | Rango de páginas | Todo el PDF |
 | `--pages-per-part` | Páginas por archivo MP3 | `25` |
 | `--merge` | Crea también un MP3 con todo el libro | No |
+| `--keep-index` | No omite las páginas de índice | No (se omiten) |
 | `--save-text` | Guarda el texto extraído en `.txt` | No |
 | `-o`, `--outdir` | Carpeta de salida | `<nombre>_audiobook` |
 | `--list-voices [IDIOMA]` | Lista las voces disponibles | — |
 
 ## ❓ Problemas comunes
 
+- **Mala pronunciación**: confirma que la voz coincide con el idioma del libro (el script lo detecta solo, pero puedes forzarlo con `--voice`). Usa `--save-text` para revisar si el texto extraído tiene palabras pegadas o cortadas.
+- **Se lee el índice**: el script omite automáticamente las páginas donde la mayoría de las líneas terminan en un número de página. Si un índice con formato inusual se cuela, usa `--start` para empezar después de él.
+- **Se leen portadas, prólogos u otras secciones**: usa `--start`/`--end` para limitar el rango de páginas.
 - **"No text found"**: el PDF es un escaneo (imágenes). Aplícale OCR primero, por ejemplo con `brew install ocrmypdf` y luego `ocrmypdf entrada.pdf salida.pdf`.
 - **"Primero ejecuta ./install.sh"**: falta el entorno virtual; corre la pre-instalación.
 - **`Permission denied` al ejecutar**: da permisos con `chmod +x install.sh audiobook.sh`.
-- **Se lee un encabezado o pie de página**: usa `--save-text` para revisar el texto; ajusta `--start`/`--end` para saltar índices o portadas.
 
 ## 🗂️ Control de versiones
 

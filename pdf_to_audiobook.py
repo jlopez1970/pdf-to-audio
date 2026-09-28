@@ -16,12 +16,13 @@ Examples:
     python pdf_to_audiobook.py --list-voices en
 """
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 import argparse
 import asyncio
 import re
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
@@ -32,6 +33,16 @@ except ImportError:
     sys.exit("Missing packages. Run ./install.sh (or: pip install -r requirements.txt)")
 
 MAX_CHUNK_CHARS = 4000  # keep each TTS request a reasonable size
+
+# Default voice per detected language
+DEFAULT_VOICES = {"es": "es-MX-DaliaNeural", "en": "en-US-AndrewNeural"}
+
+STOPWORDS = {
+    "es": {"el", "la", "los", "las", "de", "del", "que", "y", "en", "un", "una",
+           "por", "con", "para", "es", "se", "no", "su", "al", "lo", "como", "pero"},
+    "en": {"the", "and", "of", "to", "in", "is", "that", "it", "for", "with",
+           "as", "was", "on", "are", "this", "by", "be", "not", "but", "or"},
+}
 
 
 # ---------- Text extraction & cleanup ----------
@@ -60,7 +71,26 @@ def find_repeated_lines(pages, threshold=0.3):
     return {line for line, n in counts.items() if n >= min_hits}
 
 
+def is_index_page(text, min_lines=6, ratio=0.5):
+    """True for table-of-contents / back-of-book index pages: most lines end
+    in a page number (e.g. "Chapter 3 ....... 45" or "Router, 12, 88")."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if len(lines) < min_lines:
+        return False
+    numbered = sum(bool(re.search(r"[\s.·…,]\d{1,4}$", l)) for l in lines)
+    return numbered / len(lines) >= ratio
+
+
+def detect_language(text):
+    """Guess 'es' or 'en' by counting common words in a sample of the text."""
+    words = re.findall(r"[a-záéíóúñü]+", text[:20000].lower())
+    scores = {lang: sum(w in sw for w in words) for lang, sw in STOPWORDS.items()}
+    return max(scores, key=scores.get)
+
+
 def clean_text(text, repeated):
+    # NFKC turns ligatures like "ﬁ"/"ﬂ" into "fi"/"fl" so words are read correctly
+    text = unicodedata.normalize("NFKC", text)
     lines = []
     for line in text.splitlines():
         s = line.strip()
@@ -128,8 +158,9 @@ async def main():
     p.add_argument("pdf", nargs="?", help="Path to the PDF")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument("-o", "--outdir", help="Output folder (default: <pdf name>_audiobook)")
-    p.add_argument("-v", "--voice", default="en-US-AndrewNeural",
-                   help="Voice name (see --list-voices)")
+    p.add_argument("-v", "--voice",
+                   help="Voice name (see --list-voices). Default: auto-detected "
+                        "from the book's language")
     p.add_argument("-r", "--rate", default="+0%", help="Speed, e.g. -10%% or +15%%")
     p.add_argument("--start", type=int, default=1, help="First page (1-based)")
     p.add_argument("--end", type=int, help="Last page (default: last page)")
@@ -137,6 +168,8 @@ async def main():
                    help="Pages per MP3 file (default 25)")
     p.add_argument("--merge", action="store_true",
                    help="Also create one combined MP3 of the whole book")
+    p.add_argument("--keep-index", action="store_true",
+                   help="Don't skip table-of-contents / index pages")
     p.add_argument("--save-text", action="store_true",
                    help="Save the cleaned text for review")
     p.add_argument("--list-voices", metavar="LOCALE", nargs="?", const="",
@@ -156,6 +189,12 @@ async def main():
     outdir.mkdir(parents=True, exist_ok=True)
 
     pages = extract_pages(pdf_path, args.start, args.end)
+    if not args.keep_index:
+        skipped = [n for n, t in pages if is_index_page(t)]
+        if skipped:
+            print(f"Skipping table of contents / index pages: {', '.join(map(str, skipped))}")
+            print("  (use --keep-index to include them)")
+        pages = [(n, t) for n, t in pages if n not in skipped]
     repeated = find_repeated_lines(pages)
     cleaned = [(n, clean_text(t, repeated)) for n, t in pages]
 
@@ -167,6 +206,11 @@ async def main():
         txt = outdir / f"{pdf_path.stem}.txt"
         txt.write_text("\n\n".join(f"[Page {n}]\n{t}" for n, t in cleaned), encoding="utf-8")
         print(f"Saved text to {txt}")
+
+    if not args.voice:
+        lang = detect_language(" ".join(t for _, t in cleaned))
+        args.voice = DEFAULT_VOICES[lang]
+        print(f"Detected language: {'Spanish' if lang == 'es' else 'English'}")
 
     # Group pages into parts
     parts = [cleaned[i:i + args.pages_per_part]

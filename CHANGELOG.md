@@ -2,6 +2,16 @@
 
 Todas las versiones siguen [Versionado Semántico](https://semver.org/lang/es/): `MAYOR.MENOR.PARCHE`.
 
+## [1.2.0] - 2026-09-28
+### Agregado
+- Se omiten automáticamente las páginas de índice (tabla de contenido e índice alfabético). El script muestra qué páginas omitió.
+- Opción `--keep-index` para incluirlas si se desea.
+
+## [1.1.0] - 2026-09-28
+### Corregido
+- Pronunciación: la voz ahora se elige automáticamente según el idioma del libro (español → `es-MX-DaliaNeural`, inglés → `en-US-AndrewNeural`). Antes, un libro en español se leía con voz en inglés.
+- Ligaduras tipográficas (ﬁ, ﬂ) se convierten a letras normales para que las palabras se pronuncien bien.
+
 ## [1.0.0] - 2026-09-28
 ### Agregado
 - Extracción de texto de PDF con pdfplumber.
