@@ -10,3 +10,7 @@ __pycache__/
 *.pdf
 # macOS
 .DS_Store
+venv/
+.venv/
+__pycache__/
+.DS_Store

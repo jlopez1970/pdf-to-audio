@@ -2,7 +2,7 @@
 
 Convierte el texto de cualquier PDF en un audiolibro MP3 con voces neuronales de sonido natural (en español, inglés y muchos otros idiomas).
 
-**Versión actual:** 1.2.0 — ver [CHANGELOG.md](CHANGELOG.md)
+**Versión actual:** 1.3.0 — ver [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -80,6 +80,7 @@ Esto crea la carpeta `mi_libro_audiobook/` con un MP3 por cada 25 páginas. El s
 ## ❓ Problemas comunes
 
 - **Mala pronunciación**: confirma que la voz coincide con el idioma del libro (el script lo detecta solo, pero puedes forzarlo con `--voice`). Usa `--save-text` para revisar si el texto extraído tiene palabras pegadas o cortadas.
+- **La voz no respeta la puntuación**: revisa con `--save-text` que las frases terminen en punto. Una velocidad un poco más lenta (`--rate -10%`) también hace más claras las pausas, y otras voces (`es-ES-AlvaroNeural`, `es-MX-JorgeNeural`) pueden entonar mejor.
 - **Se lee el índice**: el script omite automáticamente las páginas donde la mayoría de las líneas terminan en un número de página. Si un índice con formato inusual se cuela, usa `--start` para empezar después de él.
 - **Se leen portadas, prólogos u otras secciones**: usa `--start`/`--end` para limitar el rango de páginas.
 - **"No text found"**: el PDF es un escaneo (imágenes). Aplícale OCR primero, por ejemplo con `brew install ocrmypdf` y luego `ocrmypdf entrada.pdf salida.pdf`.

@@ -16,7 +16,7 @@ Examples:
     python pdf_to_audiobook.py --list-voices en
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 import argparse
 import asyncio
@@ -96,19 +96,58 @@ def clean_text(text, repeated):
         s = line.strip()
         if not s or s in repeated:
             continue
-        if re.fullmatch(r"(page\s*)?\d+(\s*of\s*\d+)?", s, re.I):  # page numbers
+        if re.fullmatch(r"(page\s*|p[aá]gina\s*)?\d+(\s*(of|de)\s*\d+)?", s, re.I):
             continue
         lines.append(s)
+    lines = mark_headings(lines)
     text = "\n".join(lines)
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)       # re-join hyphenated words
-    text = re.sub(r"(?<![.!?:;])\n(?!\n)", " ", text)  # unwrap mid-sentence line breaks
+    text = re.sub(r"(?<![.!?:;…])\n(?!\n)", " ", text)  # unwrap mid-sentence line breaks
+    return fix_punctuation(text)
+
+
+def mark_headings(lines):
+    """Add a period to short title lines ("CANTO I", "Capítulo 3") so the voice
+    pauses instead of running the title into the next sentence."""
+    if not lines:
+        return lines
+    lengths = sorted(len(l) for l in lines)
+    median = lengths[len(lengths) // 2]
+    out = []
+    for i, l in enumerate(lines):
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        is_short = len(l) < median * 0.5
+        no_end_punct = not re.search(r"[.!?:;,…»\"')\-]$", l)
+        next_starts_new = bool(re.match(r"[A-ZÁÉÍÓÚÑ¿¡«—\"]", nxt)) or not nxt
+        if is_short and no_end_punct and next_starts_new and not l.endswith("-"):
+            l += "."
+        out.append(l)
+    return out
+
+
+def fix_punctuation(text):
+    """Normalize punctuation so the TTS voice pauses and intones correctly."""
+    # Footnote markers glued to words ("Ulises12", "casa.3") would be read aloud
+    text = re.sub(r"(?<=[a-záéíóúñ.,;:!?»])\d{1,3}(?=[\s.,;:]|$)", "", text)
+    # Ellipses
+    text = re.sub(r"\.\s?\.\s?\.", "…", text)
+    # Em/en dashes (Spanish dialogue & asides) -> comma pauses
+    text = re.sub(r"\s*[—–]\s*", ", ", text)
+    text = re.sub(r"(^|\n)\s*,\s*", r"\1", text)             # dash at line start
+    text = re.sub(r"([.!?:;…¿¡«(])\s*,\s*", r"\1 ", text)   # ". , Hola" -> ". Hola"
+    text = re.sub(r",\s*([.!?:;,…»)])", r"\1", text)         # "hola ,." -> "hola."
+    # Spacing around punctuation
+    text = re.sub(r"\s+([.,;:!?…»)])", r"\1", text)          # no space before
+    text = re.sub(r"([¿¡«(])\s+", r"\1", text)               # no space after openers
+    text = re.sub(r"([.,;:!?…»])(?=[A-Za-zÁÉÍÓÚÑáéíóúñ¿¡«])", r"\1 ", text)  # space after
     text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"^[\s,]+", "", text)
     return text.strip()
 
 
 def split_into_chunks(text, max_chars=MAX_CHUNK_CHARS):
     """Split on sentence boundaries so speech never cuts mid-sentence."""
-    sentences = re.split(r"(?<=[.!?])\s+", text)
+    sentences = re.split(r"(?<=[.!?…])\s+|(?<=[.!?…][»\"\)])\s+", text)
     chunks, current = [], ""
     for s in sentences:
         if len(current) + len(s) + 1 > max_chars and current:

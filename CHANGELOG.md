@@ -2,6 +2,14 @@
 
 Todas las versiones siguen [Versionado Semántico](https://semver.org/lang/es/): `MAYOR.MENOR.PARCHE`.
 
+## [1.3.0] - 2026-09-28
+### Mejorado
+- Puntuación: los guiones de diálogo (—) se convierten en pausas, los títulos cortos ("CANTO I", "Capítulo 3") reciben punto para que la voz haga pausa, y se corrigen espacios faltantes o sobrantes alrededor de la puntuación.
+- Puntos suspensivos ("...") se normalizan a "…".
+- Las llamadas de nota al pie pegadas a las palabras ("Ulises12") ya no se leen en voz alta.
+- Los fragmentos para la voz se cortan correctamente después de comillas de cierre (») y puntos suspensivos.
+- Se reconocen números de página en español ("Página 5 de 300").
+
 ## [1.2.0] - 2026-09-28
 ### Agregado
 - Se omiten automáticamente las páginas de índice (tabla de contenido e índice alfabético). El script muestra qué páginas omitió.
